@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hridoy AI Studio</title>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header Navigation -->
+    <header class="glass h-16 px-6 flex items-center justify-between border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-indigo-500 to-purple-500 p-2 rounded-xl">
+                <i class="fa-solid fa-wand-magic-sparkles text-xl text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                Hridoy AI Studio
+            </h1>
+        </div>
+
+        <div class="flex items-center gap-2 text-emerald-400 text-sm font-medium bg-emerald-950/50 border border-emerald-800/50 px-3 py-1.5 rounded-lg">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            System Active & Ready
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Panel: Prompt Input & Code View -->
+        <div class="w-1/2 flex flex-col border-r border-slate-800 bg-slate-900/50">
+            
+            <!-- Controls Bar -->
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <div class="flex gap-2">
+                    <button id="tabCode" onclick="switchTab('code')" class="px-4 py-1.5 text-sm rounded-lg bg-indigo-600 text-white font-medium">
+                        <i class="fa-solid fa-code mr-1.5"></i> Code View
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="downloadXML()" class="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-code"></i> Export XML
+                    </button>
+                    <button onclick="downloadCode()" class="px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Export HTML
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 flex flex-col p-4 overflow-hidden relative">
+                <!-- Code Area -->
+                <textarea id="codeOutput" spellcheck="false" class="w-full h-full bg-slate-950 text-slate-200 p-4 font-mono text-sm rounded-xl border border-slate-800 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed" placeholder="AI জেনারেট করা কোড এখানে দেখাবে..."></textarea>
+                
+                <!-- Floating Input Prompt Bar -->
+                <div class="mt-4 flex gap-2">
+                    <textarea id="userPrompt" rows="2" placeholder="আপনি কেমন অ্যাপ বানাতে চান বা কী যোগ করতে চান লিখুন..." 
+                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    
+                    <button onclick="generateApp()" id="generateBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 rounded-xl font-medium transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> Generate
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Live Application Preview -->
+        <div class="w-1/2 flex flex-col bg-slate-950">
+            <div class="p-3 border-b border-slate-800 bg-slate-900/80 flex justify-between items-center">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live App Preview
+                </span>
+                <button onclick="updatePreview()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh Preview
+                </button>
+            </div>
+            <div class="flex-1 p-2 bg-slate-900/30">
+                <iframe id="previewFrame" class="w-full h-full rounded-xl bg-white border border-slate-800"></iframe>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const API_KEY = "AQ.Ab8RN6JWWpck-H_jm2RqtWN1Zu72PYbugWZLJhmq_wzpDyblPg";
+
+        function updatePreview() {
+            const code = document.getElementById('codeOutput').value;
+            const iframe = document.getElementById('previewFrame');
+            iframe.srcdoc = code;
+        }
+
+        document.getElementById('codeOutput').addEventListener('input', updatePreview);
+
+        function downloadCode() {
+            const code = document.getElementById('codeOutput').value;
+            if(!code) return alert("ডাউনলোড করার মতো কোনো কোড নেই!");
+            
+            const blob = new Blob([code], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadXML() {
+            const code = document.getElementById('codeOutput').value;
+            if(!code) return alert("Export করার মতো কোনো প্রজেক্ট কোড নেই!");
+
+            const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <metadata>
+        <title>Hridoy AI Studio Project</title>
+        <date>${new Date().toISOString()}</date>
+    </metadata>
+    <code><![CDATA[${code}]]></code>
+</project>`;
+
+            const blob = new Blob([xmlContent], { type: 'text/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'project_export.xml';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function generateApp() {
+            const promptInput = document.getElementById('userPrompt');
+            const prompt = promptInput.value.trim();
+            const btn = document.getElementById('generateBtn');
+            const output = document.getElementById('codeOutput');
+            const existingCode = output.value.trim();
+
+            if (!prompt) {
+                alert("কী ধরণের অ্যাপ/ওয়েবসাইট বানাতে চান তা ইনপুট বক্সে লিখুন!");
+                return;
+            }
+
+            // Input prompt clear
+            promptInput.value = '';
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Building...`;
+
+            const systemInstruction = `You are an expert web application developer. Generate complete single-file HTML applications with CSS (Tailwind CSS CDN) and JavaScript included inside. Return strictly pure HTML inside <html> tags only. If existing code is provided, keep all current features intact and add or update the new request on top of it.`;
+
+            // Prompt combine logic (Step-by-step update)
+            let fullUserMessage = `User Request: ${prompt}`;
+            if (existingCode && !existingCode.startsWith("Connecting") && !existingCode.startsWith("⚠️")) {
+                fullUserMessage = `CURRENT EXISTING CODE:\n${existingCode}\n\nUSER NEW REQUEST (Keep existing code working and add this): ${prompt}`;
+            }
+
+            // Your original model list
+            const models = [
+                'gemini-3.8-flash',
+                'gemini-3.6-flash',
+                'gemini-3.5-flash-lite',
+                'gemini-3-flash-preview'
+            ];
+
+            let success = false;
+
+            for (let model of models) {
+                try {
+                    output.value = `Connecting to server (${model})...`;
+                    
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: `${systemInstruction}\n\n${fullUserMessage}` }]
+                            }]
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+                        let cleanCode = data.candidates[0].content.parts[0].text;
+                        cleanCode = cleanCode.replace(/```html/g, '').replace(/```/g, '').trim();
+                        
+                        output.value = cleanCode;
+                        updatePreview();
+                        success = true;
+                        break;
+                    }
+                } catch (err) {
+                    console.log(`Model ${model} failed, switching to next model...`);
+                }
+            }
+
+            if (!success) {
+                output.value = "⚠️ সার্ভার সংযোগে সমস্যা হচ্ছে। ২-৩ সেকেন্ড পর আবার 'Generate' চাপুন।";
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Generate`;
+        }
+    </script>
+</body>
+</html>
